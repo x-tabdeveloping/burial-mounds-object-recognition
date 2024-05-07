@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "burial-mounds"
+version = "0.1.0"
+description = "Recognizing burial mounds with YOLO"
+authors = ["Márton Kardos <power.up1163@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+radicli = "^0.0.25"
+ultralytics = "~8.2.0"
+pillow = "~10.2.0"
+numpy = "~1.26.4"
+tqdm = "~4.66.2"
+geopandas = "~0.14.3"
+rasterio = "~1.3.9"
+shapely = "~2.0.2"
+huggingface-hub = "~0.22.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
