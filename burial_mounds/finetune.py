@@ -21,7 +21,7 @@ def finetune(
     if config.endswith(".yaml") or config.endswith(".yml"):
         config_path = Path(config)
     else:
-        config_path = Path("config").joinpath(f"{config}.yaml")
+        config_path = Path("configs").joinpath(f"{config}.yaml")
 
     models_dir = Path("models/")
     models_dir.mkdir(exist_ok=True)
