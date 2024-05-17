@@ -81,6 +81,69 @@ names:
   59: Tower
 """
 
+xview_to_yolo_label = {
+    11: 0,
+    12: 1,
+    13: 2,
+    15: 3,
+    17: 4,
+    18: 5,
+    19: 6,
+    20: 7,
+    21: 8,
+    23: 9,
+    24: 10,
+    25: 11,
+    26: 12,
+    27: 13,
+    28: 14,
+    29: 15,
+    32: 16,
+    33: 17,
+    34: 18,
+    35: 19,
+    36: 20,
+    37: 21,
+    38: 22,
+    40: 23,
+    41: 24,
+    42: 25,
+    44: 26,
+    45: 27,
+    47: 28,
+    49: 29,
+    50: 30,
+    51: 31,
+    52: 32,
+    53: 33,
+    54: 34,
+    55: 35,
+    56: 36,
+    57: 37,
+    59: 38,
+    60: 39,
+    61: 40,
+    62: 41,
+    63: 42,
+    64: 43,
+    65: 44,
+    66: 45,
+    71: 46,
+    72: 47,
+    73: 48,
+    74: 49,
+    76: 50,
+    77: 51,
+    79: 52,
+    83: 53,
+    84: 54,
+    86: 55,
+    89: 56,
+    91: 57,
+    93: 58,
+    94: 59,
+}
+
 
 @cli.command(
     "preprocess_xview",
@@ -104,13 +167,6 @@ def preprocess_xview(data_dir: str = "data/xView"):
     with open(in_dir.joinpath("xView_train.geojson")) as in_file:
         data = json.loads(in_file.read())
 
-    # Finding unique labels
-    class_labels = set(
-        [feature["properties"]["type_id"] for feature in data["features"]]
-    )
-    # Mapping them to 0-N
-    labels_to_index = {label: i for i, label in enumerate(class_labels)}
-
     features = data["features"]
     for feature in tqdm(features, desc="Processing features."):
         image_id = feature["properties"]["image_id"]
@@ -122,7 +178,7 @@ def preprocess_xview(data_dir: str = "data/xView"):
             ]
             if len(bbox) != 4:
                 raise ValueError("Bounding box has an incorrect number of coordinates.")
-            class_id = labels_to_index[feature["properties"]["type_id"]]
+            class_id = xview_to_yolo_label[feature["properties"]["type_id"]]
             with Image.open(images_dir.joinpath(image_id)) as in_image:
                 width, height, *_ = in_image.size
             # Converting bounding box to YOLO format
