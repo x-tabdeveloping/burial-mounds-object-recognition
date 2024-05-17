@@ -92,7 +92,7 @@ def preprocess_xview(data_dir: str = "data/xView"):
     labels_dir = in_dir.joinpath("labels", "train")
     labels_dir.mkdir(parents=True, exist_ok=True)
 
-    in_dir.joinpath("images").mkdir()
+    in_dir.joinpath("images").mkdir(exist_ok=True)
     # Checking if images are still in the original folder structure
     # and if so, changing it
     images_dir = in_dir.joinpath("train_images")
