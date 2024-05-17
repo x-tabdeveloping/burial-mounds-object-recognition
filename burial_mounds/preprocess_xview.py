@@ -192,8 +192,12 @@ def preprocess_xview(data_dir: str = "data/xView"):
                 "a"
             ) as label_file:
                 label_file.write(entry)
+        except KeyError as e:
+            print(f"WARNING: Feature type not recognized: {e}")
         except Exception as e:
-            print(f"WARNING: Image ID: {image_id} skipped due to exception: {e}")
+            print(
+                f"WARNING: Feature in Image ID: {image_id} skipped due to exception: {e}"
+            )
 
     print("Producing training and validation splits.")
     autosplit(images_dir)
