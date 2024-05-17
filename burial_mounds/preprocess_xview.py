@@ -166,8 +166,17 @@ def preprocess_xview(data_dir: str = "data/xView"):
 
     with open(in_dir.joinpath("xView_train.geojson")) as in_file:
         data = json.loads(in_file.read())
-
     features = data["features"]
+
+    all_images = set([feature["properties"]["image_id"] for feature in features])
+    image_sizes = {}
+    for image_id in tqdm(all_images, desc="Reading all image sizes."):
+        try:
+            with Image.open(images_dir.joinpath(image_id)) as in_image:
+                image_sizes[image_id] = in_image.size
+        except FileNotFoundError:
+            print(f"WARNING: Image not found in directory {image_id}")
+
     for feature in tqdm(features, desc="Processing features."):
         image_id = feature["properties"]["image_id"]
         try:
@@ -179,8 +188,9 @@ def preprocess_xview(data_dir: str = "data/xView"):
             if len(bbox) != 4:
                 raise ValueError("Bounding box has an incorrect number of coordinates.")
             class_id = xview_to_yolo_label[feature["properties"]["type_id"]]
-            with Image.open(images_dir.joinpath(image_id)) as in_image:
-                width, height, *_ = in_image.size
+            if class_id >= 60:
+                raise ValueError("WHATHEFUCK")
+            width, height, *_ = image_sizes[image_id]
             # Converting bounding box to YOLO format
             yolo_bbox = xyxy2xywhn(
                 x=np.array(bbox, dtype=np.float64), w=width, h=height, clip=True
@@ -193,7 +203,7 @@ def preprocess_xview(data_dir: str = "data/xView"):
             ) as label_file:
                 label_file.write(entry)
         except KeyError as e:
-            print(f"WARNING: Feature type not recognized: {e}")
+            print(f"WARNING: Image, or Feature type not recognized: {e}")
         except Exception as e:
             print(
                 f"WARNING: Feature in Image ID: {image_id} skipped due to exception: {e}"
