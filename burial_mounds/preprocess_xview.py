@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -177,6 +178,7 @@ def preprocess_xview(data_dir: str = "data/xView"):
         except FileNotFoundError:
             print(f"WARNING: Image not found in directory {image_id}")
 
+    image_labels: dict[str, list[str]] = defaultdict(list)
     for feature in tqdm(features, desc="Processing features."):
         image_id = feature["properties"]["image_id"]
         try:
@@ -198,16 +200,22 @@ def preprocess_xview(data_dir: str = "data/xView"):
             yolo_bbox_str = [f"{coord:.6f}" for coord in yolo_bbox]
             # Producing YOLO format entry
             entry = " ".join([str(class_id), *yolo_bbox_str]) + "\n"
-            with labels_dir.joinpath(image_id).with_suffix(".txt").open(
-                "a"
-            ) as label_file:
-                label_file.write(entry)
+            image_labels[image_id].append(entry)
         except KeyError as e:
             print(f"WARNING: Image, or Feature type not recognized: {e}")
         except Exception as e:
             print(
                 f"WARNING: Feature in Image ID: {image_id} skipped due to exception: {e}"
             )
+    out_data = list(image_labels.items())
+    for image_id, entries in tqdm(out_data, desc="Saving all entries for all images."):
+        try:
+            with labels_dir.joinpath(image_id).with_suffix(".txt").open(
+                "w"
+            ) as label_file:
+                label_file.write("\n".join(entries))
+        except FileNotFoundError:
+            print(f"WARNING: Image not found in directory {image_id}")
 
     print("Producing training and validation splits.")
     autosplit(images_dir)
