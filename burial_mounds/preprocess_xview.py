@@ -1,15 +1,17 @@
 import json
+import random
 from collections import defaultdict
 from pathlib import Path
+from typing import Iterable
 
 import numpy as np
 from PIL import Image
 from radicli import Arg
 from tqdm import tqdm
 from ultralytics.data.utils import autosplit
-from ultralytics.utils.ops import xyxy2xywhn
 
 from burial_mounds.cli import cli
+from burial_mounds.utils import image_with_annotations
 
 XVIEW_CONFIG = """
 # Ultralytics YOLO 🚀, AGPL-3.0 license
@@ -146,6 +148,22 @@ xview_to_yolo_label = {
 }
 
 
+def convert_bbox(
+    bbox: Iterable[int], height: int, width: int
+) -> tuple[float, float, float, float]:
+    """Convert bounding box to YOLO format."""
+    x_min, y_min, x_max, y_max = bbox
+    x_min = max(x_min, 0)
+    x_max = min(x_max, width)
+    y_min = max(y_min, 0)
+    y_max = min(y_max, height)
+    x_center = (x_min + x_max) / (2 * width)
+    y_center = (y_min + y_max) / (2 * height)
+    h = (x_max - x_min) / width
+    w = (x_max - x_min) / width
+    return x_center, y_center, h, w
+
+
 @cli.command(
     "preprocess_xview",
     data_dir=Arg("--data_dir", "-d", help="Data where xView data is located."),
@@ -190,16 +208,12 @@ def preprocess_xview(data_dir: str = "data/xView"):
             if len(bbox) != 4:
                 raise ValueError("Bounding box has an incorrect number of coordinates.")
             class_id = xview_to_yolo_label[feature["properties"]["type_id"]]
-            if class_id >= 60:
-                raise ValueError("WHATHEFUCK")
             width, height, *_ = image_sizes[image_id]
             # Converting bounding box to YOLO format
-            yolo_bbox = xyxy2xywhn(
-                x=np.array(bbox, dtype=np.float64), w=width, h=height, clip=True
-            )
-            yolo_bbox_str = [f"{coord:.6f}" for coord in yolo_bbox]
+            bbox = convert_bbox(bbox, width, height)
+            bbox_str = [f"{coord:.6f}" for coord in bbox]
             # Producing YOLO format entry
-            entry = " ".join([str(class_id), *yolo_bbox_str]) + "\n"
+            entry = " ".join([str(class_id), *bbox_str]) + "\n"
             image_labels[image_id].append(entry)
         except KeyError as e:
             print(f"WARNING: Image, or Feature type not recognized: {e}")
@@ -207,15 +221,20 @@ def preprocess_xview(data_dir: str = "data/xView"):
             print(
                 f"WARNING: Feature in Image ID: {image_id} skipped due to exception: {e}"
             )
+    annotated_path = images_dir.parent.joinpath("annotated")
+    annotated_path.mkdir(exist_ok=True)
     out_data = list(image_labels.items())
     for image_id, entries in tqdm(out_data, desc="Saving all entries for all images."):
-        try:
-            with labels_dir.joinpath(image_id).with_suffix(".txt").open(
-                "w"
-            ) as label_file:
-                label_file.write("\n".join(entries))
-        except FileNotFoundError:
-            print(f"WARNING: Image not found in directory {image_id}")
+        with labels_dir.joinpath(image_id).with_suffix(".txt").open("w") as label_file:
+            label_file.write("\n".join(entries))
+    # Saving the annotated images for a sanity check
+    for image_id, entries in random.sample(out_data, 20):
+        with Image.open(images_dir.joinpath(image_id)) as image:
+            entries = [entry.split(" ") for entry in entries]
+            annotated = image_with_annotations(np.array(image), entries)
+            Image.fromarray(annotated, "RGB").save(
+                annotated_path.joinpath(f"{image_id}.png")
+            )
 
     print("Producing training and validation splits.")
     autosplit(images_dir)
