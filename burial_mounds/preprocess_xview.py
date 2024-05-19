@@ -11,7 +11,7 @@ from tqdm import tqdm
 from ultralytics.data.utils import autosplit
 
 from burial_mounds.cli import cli
-from burial_mounds.utils import image_with_annotations
+from burial_mounds.utils import convert_bbox, image_with_annotations
 
 XVIEW_CONFIG = """
 # Ultralytics YOLO 🚀, AGPL-3.0 license
@@ -148,24 +148,6 @@ xview_to_yolo_label = {
 }
 
 
-def convert_bbox(
-    bbox: Iterable[int], height: int, width: int
-) -> tuple[float, float, float, float]:
-    """Convert bounding box to YOLO format."""
-    x_min, y_min, x_max, y_max = bbox
-    x_min = max(x_min, 0)
-    x_max = min(x_max, width)
-    y_min = max(y_min, 0)
-    y_max = min(y_max, height)
-    x_center = (x_min + x_max) / (2 * width)
-    y_center = (y_min + y_max) / (2 * height)
-    h = (y_max - y_min) / height
-    w = (x_max - x_min) / width
-    if (y_max < y_min) or (x_max < x_min):
-        raise ValueError(f"Invalid bounding box: {x_min}, {y_min}, {x_max}, {y_max}")
-    return x_center, y_center, w, h
-
-
 @cli.command(
     "preprocess_xview",
     data_dir=Arg("--data_dir", "-d", help="Data where xView data is located."),
@@ -210,9 +192,9 @@ def preprocess_xview(data_dir: str = "data/xView"):
             if len(bbox) != 4:
                 raise ValueError("Bounding box has an incorrect number of coordinates.")
             class_id = xview_to_yolo_label[feature["properties"]["type_id"]]
-            width, height, *_ = image_sizes[image_id]
+            height, width, *_ = image_sizes[image_id]
             # Converting bounding box to YOLO format
-            bbox = convert_bbox(bbox, width, height)
+            bbox = convert_bbox(bbox, width=width, height=height)
             bbox_str = [f"{coord:.6f}" for coord in bbox]
             # Producing YOLO format entry
             entry = " ".join([str(class_id), *bbox_str]) + "\n"
@@ -230,7 +212,7 @@ def preprocess_xview(data_dir: str = "data/xView"):
         with labels_dir.joinpath(image_id).with_suffix(".txt").open("w") as label_file:
             label_file.write("\n".join(entries))
     # Saving the annotated images for a sanity check
-    for image_id, entries in random.sample(out_data, 20):
+    for image_id, entries in random.sample(out_data, 30):
         with Image.open(images_dir.joinpath(image_id)) as image:
             entries = [entry.split(" ") for entry in entries]
             annotated = image_with_annotations(np.array(image), entries)

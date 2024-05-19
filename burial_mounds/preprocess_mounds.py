@@ -11,11 +11,9 @@ from rasterio.features import geometry_window
 from rasterio.windows import Window
 from tqdm import tqdm
 from ultralytics.data.utils import autosplit
-from ultralytics.utils.ops import xywhn2xyxy, xyxy2xywhn
-from ultralytics.utils.plotting import Annotator
 
 from burial_mounds.cli import cli
-from burial_mounds.utils import image_with_annotations
+from burial_mounds.utils import convert_bbox, image_with_annotations
 
 MOUNDS_CONFIG = """
 # Ultralytics YOLO 🚀, AGPL-3.0 license
@@ -47,11 +45,8 @@ def iterate_windows(dataset, size: int = 1024) -> Iterable[tuple[int, int, Windo
 
 def to_yolo_entry(bbox, width, height) -> list[str]:
     """Turns bounding boxes to YOLO annotation entries."""
-    yolo_bbox = xyxy2xywhn(
-        x=np.array(bbox, dtype=np.float64), w=width, h=height, clip=True
-    )
-    yolo_bbox_str = [f"{coord:.6f}" for coord in yolo_bbox]
-    return ["0", *yolo_bbox_str]
+    bbox = convert_bbox(bbox, width, height)
+    return ["0"] + [f"{coord:.6f}" for coord in bbox]
 
 
 @cli.command(
