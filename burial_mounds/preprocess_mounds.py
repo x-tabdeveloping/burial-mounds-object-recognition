@@ -8,7 +8,7 @@ import shapely
 from PIL import Image, ImageEnhance
 from radicli import Arg
 from rasterio.features import geometry_window
-from rasterio.windows import Window
+from rasterio.windows import Window, WindowError
 from tqdm import tqdm
 from ultralytics.data.utils import autosplit
 
@@ -35,18 +35,46 @@ def minmax(channel: np.ndarray) -> np.ndarray:
 
 def iterate_windows(dataset, size: int = 1024) -> Iterable[tuple[int, int, Window]]:
     """Iterates through windows in a rasterio dataset."""
-    w, h = dataset.shape
+    h, w = dataset.shape
     for i_horizontal in range(w // size):
         for i_vertical in range(h // size):
-            yield i_horizontal, i_vertical, Window(
-                i_vertical * size, i_horizontal * size, size, size
+            window = Window(i_vertical * size, i_horizontal * size, size, size)
+            yield i_horizontal, i_vertical, window
+
+
+def get_bounding_box(
+    polygon: shapely.Polygon, window: Window, dataset
+) -> tuple[int, int, int, int]:
+    """Returns bounding box of of feature in a rasterio dataset in a window."""
+    enclosing_window = geometry_window(dataset, [polygon])
+    x_min = enclosing_window.col_off - window.col_off
+    y_min = enclosing_window.row_off - window.row_off
+    x_max = enclosing_window.col_off + enclosing_window.width - window.col_off
+    y_max = enclosing_window.row_off + enclosing_window.height - window.row_off
+    return x_min, y_min, x_max, y_max
+
+
+def get_labels_in_window(
+    polygons: Iterable[shapely.Polygon], window: Window, dataset, image_size: int
+) -> Iterable[list[str]]:
+    """Yields YOLO label entries in a window in a dataset
+    for each bounding polygons."""
+    window_bounds = shapely.box(*dataset.window_bounds(window))
+    # YOLO entries for window
+    for polygon in polygons:
+        if not polygon.intersects(window_bounds):
+            continue
+        polygon = polygon.intersection(window_bounds)
+        try:
+            bbox = get_bounding_box(polygon=polygon, window=window, dataset=dataset)
+            bbox = convert_bbox(
+                bbox,
+                width=image_size,
+                height=image_size,
             )
-
-
-def to_yolo_entry(bbox, width, height) -> list[str]:
-    """Turns bounding boxes to YOLO annotation entries."""
-    bbox = convert_bbox(bbox, width, height)
-    return ["0"] + [f"{coord:.6f}" for coord in bbox]
+            yield ["0"] + [f"{coord:.6f}" for coord in bbox]
+        except WindowError as e:
+            print(f"WARNING: Couldn't add feature on window, {e}")
 
 
 @cli.command(
@@ -56,7 +84,7 @@ def to_yolo_entry(bbox, width, height) -> list[str]:
         "--image_size", "-s", help="Size of the square shaped images to produce."
     ),
 )
-def preprocess_mounds(data_dir: str = "data/TRAP_Data", image_size: int = 640):
+def preprocess_mounds(data_dir: str = "data/TRAP_Data", image_size: int = 2048):
     """Preprocesses the mounds dataset.
     Creates square images with annotations, corrects satellite color
     channels and produces train and test splits."""
@@ -67,8 +95,8 @@ def preprocess_mounds(data_dir: str = "data/TRAP_Data", image_size: int = 640):
 
     files = {
         "east": data_path.joinpath("East/kaz_e_fuse.img"),
-        "west": data_path.joinpath("East/kaz_w_fuse.img"),
-        "joint": data_path.joinpath("East/kaz_fuse.img"),
+        "west": data_path.joinpath("West/kaz_w_fuse.img"),
+        # "joint": data_path.joinpath("kaz_fuse.img"),
     }
     images_path = data_path.joinpath("images")
     images_path.mkdir(exist_ok=True)
@@ -82,35 +110,25 @@ def preprocess_mounds(data_dir: str = "data/TRAP_Data", image_size: int = 640):
     for name, file in files.items():
         print(f"Processing {name}")
         with rasterio.open(file) as dataset:
-            windows = list(iterate_windows(dataset))
+            windows = list(iterate_windows(dataset, size=image_size))
             for i, j, window in tqdm(windows, desc="Going through windows."):
-                window_bounds = shapely.box(*dataset.window_bounds(window))
                 # YOLO entries for window
-                window_entries: list[list[str]] = []
-                for certainty, polygon in zip(boxes.Certainty, boxes.geometry):
-                    if not polygon.intersects(window_bounds):
-                        continue
-                    polygon = polygon.intersection(window_bounds)
-                    enclosing_window = geometry_window(dataset, [polygon])
-                    bbox = [
-                        enclosing_window.col_off - window.col_off,
-                        enclosing_window.row_off - window.row_off,
-                        enclosing_window.col_off
-                        + enclosing_window.width
-                        - window.col_off,
-                        enclosing_window.row_off
-                        + enclosing_window.height
-                        - window.row_off,
-                    ]
-                    window_entries.append(
-                        to_yolo_entry(bbox, width=image_size, height=image_size)
+                window_entries: list[list[str]] = list(
+                    get_labels_in_window(
+                        boxes.geometry,
+                        window=window,
+                        dataset=dataset,
+                        image_size=image_size,
                     )
+                )
                 # Go to next window if there are no mounds in it
                 if not window_entries:
                     continue
                 image = np.stack([dataset.read(ch, window=window) for ch in (1, 2, 3)])
-                bands.append(image)
-                entries.append(window_entries)
+                # Only appending image if it is large enough
+                if (image.shape[1], image.shape[2]) == (image_size, image_size):
+                    bands.append(image)
+                    entries.append(window_entries)
 
         images = np.stack(bands)
         images = minmax(images) * 256
