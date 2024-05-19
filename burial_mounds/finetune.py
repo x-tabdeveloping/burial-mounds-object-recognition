@@ -28,9 +28,11 @@ def finetune(
 
     print("Training model")
     # Load a model
-    model = YOLO("yolov8n.pt")
+    model = YOLO(base_model)
     # Train the model
-    results = model.train(data=config_path, epochs=epochs, imgsz=640)
+    results = model.train(
+        data=config_path, epochs=epochs, imgsz=640, degrees=180, flipud=0.3
+    )
 
     print("Validating model:")
     model.val()
@@ -38,8 +40,10 @@ def finetune(
     success = Path(success)
 
     extension = success.suffix
+    base_model_name = Path(base_model).stem
     out_path = models_dir.joinpath(
-        f"{config_path.stem}_base-{base_model}_best.{extension}"
+        f"{config_path.stem}_base-{base_model_name}_best.{extension}"
     )
     # Moving model to output path
     success.rename(out_path)
+    print(f"Saved best model to {out_path}")
