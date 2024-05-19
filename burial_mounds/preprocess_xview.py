@@ -159,9 +159,11 @@ def convert_bbox(
     y_max = min(y_max, height)
     x_center = (x_min + x_max) / (2 * width)
     y_center = (y_min + y_max) / (2 * height)
-    h = (x_max - x_min) / width
+    h = (y_max - y_min) / height
     w = (x_max - x_min) / width
-    return x_center, y_center, h, w
+    if (y_max < y_min) or (x_max < x_min):
+        raise ValueError(f"Invalid bounding box: {x_min}, {y_min}, {x_max}, {y_max}")
+    return x_center, y_center, w, h
 
 
 @cli.command(
