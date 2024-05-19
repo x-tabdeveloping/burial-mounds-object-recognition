@@ -192,7 +192,7 @@ def preprocess_xview(data_dir: str = "data/xView"):
             if len(bbox) != 4:
                 raise ValueError("Bounding box has an incorrect number of coordinates.")
             class_id = xview_to_yolo_label[feature["properties"]["type_id"]]
-            height, width, *_ = image_sizes[image_id]
+            width, height, *_ = image_sizes[image_id]
             # Converting bounding box to YOLO format
             bbox = convert_bbox(bbox, width=width, height=height)
             bbox_str = [f"{coord:.6f}" for coord in bbox]

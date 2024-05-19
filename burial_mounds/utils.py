@@ -10,7 +10,7 @@ def image_with_annotations(
 ) -> np.ndarray:
     """Produces image with annotations on them."""
     annotator = Annotator(image)
-    w, h, *_ = image.shape
+    h, w, *_ = image.shape
     for label, *xywhn in annotations:
         xywhn = np.array([float(coord) for coord in xywhn])
         xyxy = xywhn2xyxy(xywhn, w=w, h=h)
