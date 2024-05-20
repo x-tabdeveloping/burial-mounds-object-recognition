@@ -104,6 +104,11 @@ def preprocess_mounds(data_dir: str = "data/TRAP_Data", image_size: int = 2048):
     labels_path.mkdir(exist_ok=True)
     annotated_path = data_path.joinpath("annotated")
     annotated_path.mkdir(exist_ok=True)
+    print("Deleting previous images.")
+    for file in images_path.glob("*.png"):
+        file.unlink()
+    for file in annotated_path.glob("*.png"):
+        file.unlink()
     bands = []
     # YOLO entries for each image
     entries: list[list[list[str]]] = []
