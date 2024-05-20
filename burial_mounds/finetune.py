@@ -44,13 +44,13 @@ def finetune(
 
     print("Validating model:")
     model.val()
-    success = model.export(format="onnx")
+    success = model.export()
     success = Path(success)
 
     extension = success.suffix
     base_model_name = Path(base_model).stem
     out_path = models_dir.joinpath(
-        f"{config_path.stem}_base-{base_model_name}_best.{extension}"
+        f"{config_path.stem}_base-{base_model_name}_best{extension}"
     )
     # Moving model to output path
     success.rename(out_path)
