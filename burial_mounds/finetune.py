@@ -21,7 +21,7 @@ def finetune(
     config: str,
     epochs: int = 100,
     image_size: int = 640,
-    scale_images: float = 2.0,
+    scale_images: float = 0.5,
 ):
     # User may either specify a path to a config file, or just a name like "mounds", "xview"
     if config.endswith(".yaml") or config.endswith(".yml"):
