@@ -18,7 +18,7 @@ from burial_mounds.utils import convert_bbox, image_with_annotations
 MOUNDS_CONFIG = """
 # Ultralytics YOLO 🚀, AGPL-3.0 license
 
-path: ../data/TRAP_Data
+path: ../data/mounds
 train: autosplit_train.txt
 val: autosplit_val.txt
 
@@ -110,17 +110,19 @@ def preprocess_mounds(
     print("Loading bounding boxes")
     boxes = gpd.read_file(data_path.joinpath("Kaz_mndbbox.geojson"))
     boxes = boxes.set_crs(epsg=32635, allow_override=True)
+    out_path = data_path.parent.joinpath("mounds")
+    out_path.mkdir(exist_ok=True)
 
     files = {
         "east": data_path.joinpath("East/kaz_e_fuse.img"),
         "west": data_path.joinpath("West/kaz_w_fuse.img"),
         # "joint": data_path.joinpath("kaz_fuse.img"),
     }
-    images_path = data_path.joinpath("images")
+    images_path = out_path.joinpath("images")
     images_path.mkdir(exist_ok=True)
-    labels_path = data_path.joinpath("labels")
+    labels_path = out_path.joinpath("labels")
     labels_path.mkdir(exist_ok=True)
-    annotated_path = data_path.joinpath("annotated")
+    annotated_path = out_path.joinpath("annotated")
     annotated_path.mkdir(exist_ok=True)
     print("Deleting previous images.")
     for file in images_path.glob("*.png"):
