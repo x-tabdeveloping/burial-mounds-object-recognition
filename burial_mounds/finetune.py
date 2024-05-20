@@ -12,12 +12,16 @@ from burial_mounds.cli import cli
     config=Arg(help="Name of the config to finetune the model on or path to config."),
     epochs=Arg("--epochs", "-e", help="Number of epochs for training."),
     image_size=Arg("--image_size", "-s", help="Size of the images to use in training."),
+    scale_images=Arg(
+        "--scale_images", help="Factor to scale the images by when augmenting data."
+    ),
 )
 def finetune(
     base_model: str,
     config: str,
     epochs: int = 100,
     image_size: int = 640,
+    scale_images: float = 2.0,
 ):
     # User may either specify a path to a config file, or just a name like "mounds", "xview"
     if config.endswith(".yaml") or config.endswith(".yml"):
@@ -40,6 +44,7 @@ def finetune(
         flipud=0.3,
         optimizer="Adam",
         lr0=0.01,
+        scale=scale_images,
     )
 
     print("Validating model:")
