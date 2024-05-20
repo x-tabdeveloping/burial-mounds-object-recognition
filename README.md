@@ -128,5 +128,30 @@ nohup python3 -m burial_mounds finetune "yolov8n.pt" "configs/mounds.yaml" --epo
 If you intend to publish a trained model to the HuggingFace Hub you can use the `push_to_hub` command.
 
 ```bash
-python3 -m burial_mounds push_to_hub --model_path "models/mounds_base-yolov8n_best.pt" --repo_id "chcaa/burial-mounds_yolo8n_obb"
+python3 -m burial_mounds push_to_hub --model_path "models/mounds_base-yolov8n_best.pt" --repo_id "chcaa/burial-mounds_yolov8n"
 ```
+
+### Inference
+
+You can use the models trained with this package like any other YOLO model.
+The package also comes with a convenience function for loading models from HuggingFace repositories.
+
+```python
+from burial_mounds.hub import load_from_hub
+
+model = load_from_hub("chcaa/burial_mounds_yolov8n")
+
+mounds = model(["data/mounds/images/east_30.png"])
+
+# Process results list
+for result in results:
+    boxes = result.boxes  # Boxes object for bounding box outputs
+    masks = result.masks  # Masks object for segmentation masks outputs
+    keypoints = result.keypoints  # Keypoints object for pose outputs
+    probs = result.probs  # Probs object for classification outputs
+    obb = result.obb  # Oriented boxes object for OBB outputs
+    result.show()  # display to screen
+    result.save(filename="result.jpg")  # save to disk
+```
+
+For a more detailed guide consult the [YOLOv8 documentation](https://docs.ultralytics.com/modes/predict/#key-features-of-predict-mode).
