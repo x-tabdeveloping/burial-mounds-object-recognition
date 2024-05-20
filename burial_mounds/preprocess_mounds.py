@@ -18,7 +18,7 @@ from burial_mounds.utils import convert_bbox, image_with_annotations
 MOUNDS_CONFIG = """
 # Ultralytics YOLO 🚀, AGPL-3.0 license
 
-path: ../data/mounds
+path: ../{out_dir}
 train: autosplit_train.txt
 val: autosplit_val.txt
 
@@ -85,6 +85,9 @@ def get_labels_in_window(
 @cli.command(
     "preprocess_mounds",
     data_dir=Arg("--data_dir", "-d", help="Data where mounds data is located."),
+    out_dir=Arg(
+        "--out_dir", "-o", help="Data where mounds YOLO dataset should be saved."
+    ),
     image_size=Arg(
         "--image_size", "-s", help="Size of the square shaped images to produce."
     ),
@@ -92,6 +95,7 @@ def get_labels_in_window(
 )
 def preprocess_mounds(
     data_dir: str = "data/TRAP_Data",
+    out_dir: str = "data/mounds",
     image_size: int = 1024,
     format: Literal["obb", "detect"] = "obb",
 ):
@@ -110,8 +114,8 @@ def preprocess_mounds(
     print("Loading bounding boxes")
     boxes = gpd.read_file(data_path.joinpath("Kaz_mndbbox.geojson"))
     boxes = boxes.set_crs(epsg=32635, allow_override=True)
-    out_path = data_path.parent.joinpath("mounds")
-    out_path.mkdir(exist_ok=True)
+    out_path = Path(out_dir)
+    out_path.mkdir(exist_ok=True, parents=True)
 
     files = {
         "east": data_path.joinpath("East/kaz_e_fuse.img"),
@@ -181,4 +185,4 @@ def preprocess_mounds(
     configs_dir = Path("configs")
     configs_dir.mkdir(exist_ok=True)
     with configs_dir.joinpath("mounds.yaml").open("w") as config_file:
-        config_file.write(MOUNDS_CONFIG)
+        config_file.write(MOUNDS_CONFIG.format(out_dir=out_dir))
