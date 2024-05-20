@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Literal
 
 import geopandas as gpd
 import numpy as np
@@ -55,7 +55,11 @@ def get_bounding_box(
 
 
 def get_labels_in_window(
-    polygons: Iterable[shapely.Polygon], window: Window, dataset, image_size: int
+    polygons: Iterable[shapely.Polygon],
+    window: Window,
+    dataset,
+    image_size: int,
+    format: Literal["detect", "obb"] = "obb",
 ) -> Iterable[list[str]]:
     """Yields YOLO label entries in a window in a dataset
     for each bounding polygons."""
@@ -71,6 +75,7 @@ def get_labels_in_window(
                 bbox,
                 width=image_size,
                 height=image_size,
+                format=format,
             )
             yield ["0"] + [f"{coord:.6f}" for coord in bbox]
         except WindowError as e:
@@ -83,11 +88,24 @@ def get_labels_in_window(
     image_size=Arg(
         "--image_size", "-s", help="Size of the square shaped images to produce."
     ),
+    format=Arg("--format", "-f", help="Format of the dataset {'detect' or 'obb'}"),
 )
-def preprocess_mounds(data_dir: str = "data/TRAP_Data", image_size: int = 2048):
+def preprocess_mounds(
+    data_dir: str = "data/TRAP_Data",
+    image_size: int = 1024,
+    format: Literal["obb", "detect"] = "obb",
+):
     """Preprocesses the mounds dataset.
     Creates square images with annotations, corrects satellite color
     channels and produces train and test splits."""
+    print(
+        f"""
+    Preprocessing burial mounds dataset with following parameters:
+      - directory: {data_dir}
+      - window size: {image_size} x {image_size}
+      - format: {format}
+    """
+    )
     data_path = Path(data_dir)
     print("Loading bounding boxes")
     boxes = gpd.read_file(data_path.joinpath("Kaz_mndbbox.geojson"))
@@ -124,6 +142,7 @@ def preprocess_mounds(data_dir: str = "data/TRAP_Data", image_size: int = 2048):
                         window=window,
                         dataset=dataset,
                         image_size=image_size,
+                        format=format,
                     )
                 )
                 # Go to next window if there are no mounds in it

@@ -8,14 +8,16 @@ from burial_mounds.cli import cli
 
 @cli.command(
     "finetune",
+    base_model=Arg(help="Base Model to finetune."),
     config=Arg(help="Name of the config to finetune the model on or path to config."),
-    base_model=Arg("--base_model", "-b", help="Base Model to finetune."),
     epochs=Arg("--epochs", "-e", help="Number of epochs for training."),
+    image_size=Arg("--image_size", "-s", help="Size of the images to use in training."),
 )
 def finetune(
+    base_model: str,
     config: str,
-    base_model: str = "yolov8n.pt",
     epochs: int = 100,
+    image_size: int = 640,
 ):
     # User may either specify a path to a config file, or just a name like "mounds", "xview"
     if config.endswith(".yaml") or config.endswith(".yml"):
@@ -31,7 +33,13 @@ def finetune(
     model = YOLO(base_model)
     # Train the model
     results = model.train(
-        data=config_path, epochs=epochs, imgsz=640, degrees=180, flipud=0.3
+        data=config_path,
+        epochs=epochs,
+        imgsz=image_size,
+        degrees=180,
+        flipud=0.3,
+        optimizer="Adam",
+        lr0=0.01,
     )
 
     print("Validating model:")
