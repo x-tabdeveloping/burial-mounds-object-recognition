@@ -131,8 +131,8 @@ def preprocess_mounds(
     out_path.mkdir(exist_ok=True, parents=True)
 
     files = {
-        # "east": data_path.joinpath("East/kaz_e_fuse.img"),
-        # "west": data_path.joinpath("West/kaz_w_fuse.img"),
+        "east": data_path.joinpath("East/kaz_e_fuse.img"),
+        "west": data_path.joinpath("West/kaz_w_fuse.img"),
         "joint": data_path.joinpath("kaz_fuse.img"),
     }
     images_path = out_path.joinpath("images")
