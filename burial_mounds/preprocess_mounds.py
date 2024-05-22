@@ -60,6 +60,7 @@ def get_labels_in_window(
     dataset,
     image_size: int,
     format: Literal["detect", "obb"] = "obb",
+    min_mound_size: int = 32,
 ) -> Iterable[list[str]]:
     """Yields YOLO label entries in a window in a dataset
     for each bounding polygons."""
@@ -70,14 +71,19 @@ def get_labels_in_window(
             continue
         polygon = polygon.intersection(window_bounds)
         try:
-            bbox = get_bounding_box(polygon=polygon, window=window, dataset=dataset)
-            bbox = convert_bbox(
-                bbox,
-                width=image_size,
-                height=image_size,
-                format=format,
+            x_min, y_min, x_max, y_max = get_bounding_box(
+                polygon=polygon, window=window, dataset=dataset
             )
-            yield ["0"] + [f"{coord:.6f}" for coord in bbox]
+            if ((x_max - x_min) > min_mound_size) and (
+                (y_max - y_min) > min_mound_size
+            ):
+                bbox = convert_bbox(
+                    [x_min, y_min, x_max, y_max],
+                    width=image_size,
+                    height=image_size,
+                    format=format,
+                )
+                yield ["0"] + [f"{coord:.6f}" for coord in bbox]
         except WindowError as e:
             print(f"WARNING: Couldn't add feature on window, {e}")
 
@@ -92,12 +98,18 @@ def get_labels_in_window(
         "--image_size", "-s", help="Size of the square shaped images to produce."
     ),
     format=Arg("--format", "-f", help="Format of the dataset {'detect' or 'obb'}"),
+    min_mound_size=Arg(
+        "--min_mound_size",
+        "-m",
+        help="Minimal width and length of a mound to be labelled.",
+    ),
 )
 def preprocess_mounds(
     data_dir: str = "data/TRAP_Data",
     out_dir: str = "data/mounds",
     image_size: int = 1024,
     format: Literal["obb", "detect"] = "obb",
+    min_mound_size: int = 32,
 ):
     """Preprocesses the mounds dataset.
     Creates square images with annotations, corrects satellite color
@@ -108,6 +120,7 @@ def preprocess_mounds(
       - directory: {data_dir}
       - window size: {image_size} x {image_size}
       - format: {format}
+      - minimum mound size: {min_mound_size}
     """
     )
     data_path = Path(data_dir)
@@ -118,9 +131,9 @@ def preprocess_mounds(
     out_path.mkdir(exist_ok=True, parents=True)
 
     files = {
-        "east": data_path.joinpath("East/kaz_e_fuse.img"),
-        "west": data_path.joinpath("West/kaz_w_fuse.img"),
-        # "joint": data_path.joinpath("kaz_fuse.img"),
+        # "east": data_path.joinpath("East/kaz_e_fuse.img"),
+        # "west": data_path.joinpath("West/kaz_w_fuse.img"),
+        "joint": data_path.joinpath("kaz_fuse.img"),
     }
     images_path = out_path.joinpath("images")
     images_path.mkdir(exist_ok=True)
@@ -149,6 +162,7 @@ def preprocess_mounds(
                         dataset=dataset,
                         image_size=image_size,
                         format=format,
+                        min_mound_size=min_mound_size,
                     )
                 )
                 # Go to next window if there are no mounds in it
