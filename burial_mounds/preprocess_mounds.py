@@ -103,13 +103,19 @@ def get_labels_in_window(
         "-m",
         help="Minimal width and length of a mound to be labelled.",
     ),
+    joint=Arg(
+        "--joint",
+        "-j",
+        help="Indicates whether the joint image should be used, or the separate images.",
+    ),
 )
 def preprocess_mounds(
     data_dir: str = "data/TRAP_Data",
     out_dir: str = "data/mounds",
     image_size: int = 1024,
     format: Literal["obb", "detect"] = "obb",
-    min_mound_size: int = 32,
+    min_mound_size: int = 10,
+    joint: bool = False,
 ):
     """Preprocesses the mounds dataset.
     Creates square images with annotations, corrects satellite color
@@ -130,11 +136,12 @@ def preprocess_mounds(
     out_path = Path(out_dir)
     out_path.mkdir(exist_ok=True, parents=True)
 
-    files = {
-        "east": data_path.joinpath("East/kaz_e_fuse.img"),
-        "west": data_path.joinpath("West/kaz_w_fuse.img"),
-        "joint": data_path.joinpath("kaz_fuse.img"),
-    }
+    files = dict()
+    if joint:
+        files["joint"] = data_path.joinpath("kaz_fuse.img")
+    else:
+        files["east"] = data_path.joinpath("East/kaz_e_fuse.img")
+        files["west"] = data_path.joinpath("West/kaz_w_fuse.img")
     images_path = out_path.joinpath("images")
     images_path.mkdir(exist_ok=True)
     labels_path = out_path.joinpath("labels")
