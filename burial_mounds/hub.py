@@ -29,7 +29,21 @@ This repository contains a YOLO model that has been finetuned by the `burial_mou
 from burial_mounds.hub import load_from_hub
 
 model = load_from_hub("{repo}")
+
+mounds = model(["data/mounds/images/east_30.png"])
+
+# Process results list
+for result in results:
+    boxes = result.boxes  # Boxes object for bounding box outputs
+    masks = result.masks  # Masks object for segmentation masks outputs
+    keypoints = result.keypoints  # Keypoints object for pose outputs
+    probs = result.probs  # Probs object for classification outputs
+    obb = result.obb  # Oriented boxes object for OBB outputs
+    result.show()  # display to screen
+    result.save(filename="result.jpg")  # save to disk
 ```
+
+For a more detailed guide consult the [YOLOv8 documentation](https://docs.ultralytics.com/modes/predict/#key-features-of-predict-mode).
 """
 
 
