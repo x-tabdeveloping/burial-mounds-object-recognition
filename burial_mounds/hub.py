@@ -48,13 +48,13 @@ model = load_from_hub("{repo}")
 def push_to_hub(model_path: str, repo_id: str, skip_readme: bool = False) -> None:
     api = HfApi()
     suffix = Path(model_path).suffix
+    api.create_repo(repo_id, exist_ok=True)
     api.upload_file(
         path_or_fileobj=model_path,
         path_in_repo=f"model.{suffix}",
         repo_id=repo_id,
         repo_type="model",
     )
-    api.create_repo(repo_id, exist_ok=True)
     dataset = Path(model_path).stem.split("_")[0]
     with tempfile.TemporaryDirectory() as tmp_dir:
         if not skip_readme:
