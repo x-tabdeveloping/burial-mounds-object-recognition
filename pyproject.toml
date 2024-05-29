@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "burial-mounds"
-version = "0.1.7"
+version = "0.2.0"
 description = "Recognizing burial mounds with YOLO"
 authors = ["Márton Kardos <power.up1163@gmail.com>"]
 license = "MIT"
