@@ -8,7 +8,7 @@ This repo was built around using YOLOv8 for detecting burial mounds in satellite
 
 ## Installation
 
-To just use the CLI for preprocessing and finetuning, you can install the package from PyPI.
+You can install the software package from PyPI.
 
 ```bash
 pip install burial_mounds
