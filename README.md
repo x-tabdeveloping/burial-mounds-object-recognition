@@ -1,12 +1,9 @@
 # burial-mounds-object-recognition
 Finetuning Object recognition models to recognize burial mounds.
 
-## Usage
+This repo was built around using YOLOv8 for detecting burial mounds in satellite images and contains utilities for using pretrained models for burial mound detection and for training mound detctor models from scratch.
 
-This repo was built around using YOLOv8 for detecting objects in satellite images.
-I chose to organize it as a CLI so that it is easy to get started in completely fresh environments.
-
-### Installation
+## Installation
 
 To just use the CLI for preprocessing and finetuning, you can install the package from PyPI.
 
@@ -19,6 +16,50 @@ Make sure to also install OpenCV on your computer. Here's how you would do that 
 ```bash
 sudo apt update && sudo apt install python3-opencv
 ```
+
+## Using Pretrained Models
+
+You can load one of the pretrained models from our HuggingFace repository:
+
+```python
+from burial_mounds.model import MoundDetector
+
+model = MoundDetector.load_from_hub("kardosdrur/burial-mounds-yolov8m-obb")
+```
+
+The package includes utilities for finding bounding polygons (`shapely.Polygon`) of burial mounds in true color satellite images.
+
+```python
+bounding_polygons = model.detect_mounds("some_satellite_image.png")
+for polygon in bounding_polygons:
+    print(polygon)
+```
+As well as for annotating images with bounding boxes.
+
+```python
+annotated_image = model.annotate_image("some_satellite_image.png")
+annotated_image.show()
+```
+
+<img src="assets/detections.png" alt="Detected mounds" width="600">
+
+For a more detailed guide consult the [YOLOv8 documentation](https://docs.ultralytics.com/modes/predict/#key-features-of-predict-mode).
+
+
+
+Multiple models have been made available for mound detection as part of the project, these are:
+
+| **Model Name**               | **# Parameters** | **Pretraining**  | **Size (pixels)** | **Task** |
+|------------------------------|------------------|------------------|-------------------|----------|
+| burial-mounds-yolov8m        | 26.2 M           | Open Images V7   | 640               | Detect   |
+| burial-mounds-yolov8m-xview  | 26.2 M           | xView            | 640               | Detect   |
+| burial-mounds-yolov8m-obb    | 26.4 M           | DOTA             | 1024              | OBB      |
+
+> Beware that none of the models perform particularly well, see the technical report for details.
+
+## Training Models from Scratch
+
+The Python package contains a CLI for training all the above mentioned mound detector models from scratch along with code for preprocessing the datasets the models were trained on.
 
 ### Preprocessing
 
@@ -70,6 +111,8 @@ python3 -m burial_mounds preprocess_mounds --data_dir data/TRAP_Data --out_dir d
 ```
 
 ### Finetuning
+
+> You might need to set the `ultralytics` package's default dataset location to the current folder when training models. The package might not be able to find the training set otherwise.
 
 There are two types of models you can choose from for finetuning.
 Either models that have been trained on OBB, or simple object detection.
@@ -128,30 +171,6 @@ nohup python3 -m burial_mounds finetune "yolov8n.pt" "configs/mounds.yaml" --epo
 If you intend to publish a trained model to the HuggingFace Hub you can use the `push_to_hub` command.
 
 ```bash
-python3 -m burial_mounds push_to_hub --model_path "models/mounds_base-yolov8n_best.pt" --repo_id "chcaa/burial-mounds_yolov8n"
+python3 -m burial_mounds push_to_hub --model_path "runs/detect/train8/weights/best.pt" --repo_id "chcaa/burial-mounds_yolov8n"
 ```
 
-### Inference
-
-You can use the models trained with this package like any other YOLO model.
-The package also comes with a convenience function for loading models from HuggingFace repositories.
-
-```python
-from burial_mounds.hub import load_from_hub
-
-model = load_from_hub("chcaa/burial_mounds_yolov8n")
-
-mounds = model(["data/mounds/images/east_30.png"])
-
-# Process results list
-for result in results:
-    boxes = result.boxes  # Boxes object for bounding box outputs
-    masks = result.masks  # Masks object for segmentation masks outputs
-    keypoints = result.keypoints  # Keypoints object for pose outputs
-    probs = result.probs  # Probs object for classification outputs
-    obb = result.obb  # Oriented boxes object for OBB outputs
-    result.show()  # display to screen
-    result.save(filename="result.jpg")  # save to disk
-```
-
-For a more detailed guide consult the [YOLOv8 documentation](https://docs.ultralytics.com/modes/predict/#key-features-of-predict-mode).
