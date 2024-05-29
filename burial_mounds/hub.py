@@ -7,6 +7,7 @@ from radicli import Arg
 from ultralytics import YOLO
 
 from burial_mounds.cli import cli
+from burial_mounds.model import MoundDetector
 
 DEFAULT_README = """
 ---
@@ -84,10 +85,4 @@ def push_to_hub(model_path: str, repo_id: str, skip_readme: bool = False) -> Non
 
 
 def load_from_hub(repo_id: str):
-    in_dir = snapshot_download(repo_id=repo_id)
-    model_files = list(Path(in_dir).glob("model.*"))
-    if not model_files:
-        raise ValueError("Repo does not contain model file.")
-    if len(model_files) > 1:
-        warnings.warn(f"Multiple model files in repo, loading {model_files[0]}")
-    return YOLO(model_files[0])
+    return MoundDetector.load_from_hub(repo_id)
