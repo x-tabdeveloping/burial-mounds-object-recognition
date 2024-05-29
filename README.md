@@ -1,7 +1,10 @@
-# burial-mounds-object-recognition
+# Only Looking Once - Burial Mound Recognition with YOLO
 Finetuning Object recognition models to recognize burial mounds.
 
 This repo was built around using YOLOv8 for detecting burial mounds in satellite images and contains utilities for using pretrained models for burial mound detection and for training mound detctor models from scratch.
+
+> This repository is the product for my exam project in Spatial Analytics at Aarhus University in the Cultural Data Science programme.
+> I would by no means consider this a production-ready solution, and, due to the models' low performance, I would interpret their predictions with caution.
 
 ## Installation
 
